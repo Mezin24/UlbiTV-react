@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { usePosts } from '../hooks/usePosts';
 import { useFetching } from '../hooks/useFetching';
 import { PostService } from '../API/PostService';
@@ -21,10 +21,25 @@ const Posts = () => {
   const [totalPages, setTotalPages] = useState(0);
   const [fetchPosts, isPostsLoading, error] = useFetching(async () => {
     const response = await PostService.fetchPosts(limit, page);
-    setPosts(response.data);
+    setPosts([...posts, ...response.data]);
     const totalCount = response.headers['x-total-count'];
     setTotalPages(calcTotalPages(totalCount, limit));
   });
+
+  const lastElement = useRef();
+  const observer = useRef();
+
+  useEffect(() => {
+    if (isPostsLoading) return;
+    if (observer.current) observer.current.disconnect();
+    const callback = (entries) => {
+      if (!entries[0].isIntersecting) return;
+      if (page >= limit) return;
+      setPage((prev) => prev + 1);
+    };
+    observer.current = new IntersectionObserver(callback);
+    observer.current.observe(lastElement.current);
+  }, [isPostsLoading]);
 
   useEffect(() => {
     fetchPosts();
@@ -52,18 +67,23 @@ const Posts = () => {
       </MyModal>
       <hr style={{ marginTop: '1rem' }} />
       <PostFilter filter={filter} setFilter={setFilter} />
+      <PostList
+        posts={sortedAndFilteredPosts}
+        title={'JS POSTS'}
+        handleDelete={handleDelete}
+      />
+      <div
+        ref={lastElement}
+        style={{ backgroundColor: 'red', height: '20px' }}
+      ></div>
       {isPostsLoading ? (
         <Loader />
       ) : (
         <>
-          <PostList
-            posts={sortedAndFilteredPosts}
-            title={'JS POSTS'}
-            handleDelete={handleDelete}
-          />
           <Pagination page={page} totalPages={totalPages} setPage={setPage} />
         </>
       )}
+
       {error && (
         <>
           <h1 style={{ marginTop: '1rem', textAlign: 'center' }}>

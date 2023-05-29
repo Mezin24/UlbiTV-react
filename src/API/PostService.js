@@ -10,4 +10,17 @@ export class PostService {
     });
     return response;
   }
+
+  static async fetchPost(id) {
+    const response = await axios(
+      `https://jsonplaceholder.typicode.com/posts/${id}`
+    );
+    return response;
+  }
+  static async fetchPostComments(id) {
+    const response = await axios(
+      `https://jsonplaceholder.typicode.com/posts/${id}/comments`
+    );
+    return response;
+  }
 }
